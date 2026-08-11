@@ -1,0 +1,9 @@
+numpy<2
+pandas
+scipy
+matplotlib
+astropy
+marimo
+jupyter
+h5py
+netCDF4
