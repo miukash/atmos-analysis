@@ -1,0 +1,13 @@
+{
+    "name": "Atmos Analysis",
+    "image": "atmos-analysis:v1.0",
+    "workspaceFolder": "/workspace",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python"
+            ]
+        }
+    }
+}

@@ -9,35 +9,47 @@ The environment includes HEASoft and the tools required for FITS data analysis.
 ## Architecture
 
 ```text
-                    WSL
-                     │
-              ┌──────┴──────┐
-              │             │
-           data/          VS Code
-              │
-              │ mount
-              ▼
-        Docker Container
-              │
-       /workspace/data
-              │
-        ┌─────┴─────┐
-        │           │
-     FTOOLS       XSPEC
+                         WSL 2
+                           │
+                    ┌──────┴──────┐
+                    │             │
+                  data/        VS Code
+                    │             │
+                    │             │ Dev Containers
+                    │             ▼
+                    │      Docker Container
+                    │             │
+                    │         /workspace
+                    │             │
+                    │      ┌──────┴──────┐
+                    │      │             │
+                    │    FTOOLS        XSPEC
+                    │
+                    └──────► /workspace/data
 ```
 
-FITS files are stored in WSL and mounted into the Docker container.
+FITS files are stored in the WSL `data/` directory.
 
-FITS files can also be opened using a FITS viewer installed on Windows.
+The project directory is mounted into the Docker container when using VS Code Dev Containers.
+
+The Docker image contains:
+
+- HEASoft
+- FTOOLS
+- XSPEC
+- Python
+- Required Python packages
 
 ---
 
 # Prerequisites
 
-* Docker
-* WSL 2
-* VS Code
-* Windows FITS Viewer
+- Windows
+- WSL 2
+- Docker Desktop
+- VS Code
+- VS Code Dev Containers extension
+- Windows FITS Viewer
 
 Docker Desktop is recommended when using Docker from WSL.
 
@@ -47,14 +59,23 @@ Verify Docker:
 docker --version
 ```
 
+Verify WSL:
+
+```bash
+wsl --version
+```
+
 ---
 
 # Getting Started
 
 ## 1. Clone the Repository
 
+From WSL:
+
 ```bash
 git clone <repository-url>
+
 cd atmosdemo/atmos_platform/atmos_analysis
 ```
 
@@ -68,12 +89,17 @@ For example:
 
 ```text
 atmos_analysis/
+
 ├── data/
 │   ├── example1.fits
 │   └── example2.fits
+├── .devcontainer/
+│   └── devcontainer.json
 ├── Dockerfile
 ├── Makefile
-└── ...
+├── README.md
+├── requirements.txt
+└── tests/
 ```
 
 The data itself is not included in this repository.
@@ -90,11 +116,11 @@ make pull
 
 The image contains:
 
-* HEASoft
-* FTOOLS
-* XSPEC
-* Python
-* Required Python packages
+- HEASoft
+- FTOOLS
+- XSPEC
+- Python
+- Required Python packages
 
 ---
 
@@ -112,37 +138,58 @@ A successful test should finish without errors.
 
 ---
 
-## 5. Start the Analysis Environment
+# Development with VS Code
 
-Run:
+The recommended way to use the analysis environment is **VS Code Dev Containers**.
+
+This allows the project files to be edited in VS Code while the analysis tools run inside the Docker container.
+
+## 1. Open the Project
+
+From WSL:
 
 ```bash
-make shell
+code .
 ```
 
-This starts an interactive shell inside the Docker container.
+---
 
-The WSL `data/` directory is mounted automatically:
+## 2. Open the Project in the Container
+
+In VS Code:
 
 ```text
-WSL:
-
-atmos_analysis/data/
-        │
-        │ bind mount
-        ▼
-Docker:
-
-/workspace/data/
+Ctrl + Shift + P
 ```
 
-Inside the container:
+Select:
 
-```bash
-ls /workspace/data
+```text
+Dev Containers: Reopen in Container
 ```
 
-You should see the FITS files stored in `data/`.
+VS Code will start the `atmos-analysis:v1.0` Docker image and connect to it.
+
+The VS Code Explorer will show:
+
+```text
+/workspace/
+
+├── Dockerfile
+├── Makefile
+├── README.md
+├── data/
+├── requirements.txt
+└── tests/
+```
+
+The VS Code terminal will also run inside the Docker container:
+
+```text
+root@<container>:/workspace#
+```
+
+You can then use the analysis tools directly.
 
 For example:
 
@@ -150,60 +197,149 @@ For example:
 fversion
 ```
 
-and:
+```bash
+ftlist /workspace/data/example1.fits K
+```
+
+```bash
+fkeyprint /workspace/data/example1.fits SIMPLE
+```
+
+Python is also available:
+
+```bash
+python
+```
+
+The FITS files in `data/` are accessible from the container through:
+
+```text
+/workspace/data/
+```
+
+---
+
+# FITS Files
+
+There are two ways to view FITS files depending on the WSL environment.
+
+## Option 1: WSLg is available
+
+If WSLg is available, `fv` can be run inside the Docker container and displayed on the Windows desktop.
+
+Start the GUI-enabled environment:
+
+```bash
+make fv
+```
+
+Then inside the container:
+
+```bash
+fv /workspace/data/example1.fits
+```
+
+The architecture is:
+
+```text
+Windows
+   │
+   │ WSLg
+   ▼
+WSL 2
+   │
+   ▼
+Docker Container
+   │
+   ▼
+HEASoft / fv
+   │
+   ▼
+Windows GUI
+```
+
+---
+
+## Option 2: WSLg is not available
+
+If `fv` cannot display its GUI, use **Windows FV** to open the FITS file.
+
+The FITS files remain in the WSL `data/` directory.
+
+Windows can access the WSL filesystem through:
+
+```text
+\\wsl.localhost\
+```
+
+For example:
+
+```text
+\\wsl.localhost\Ubuntu\home\<user>\proj\atmosdemo\atmos_platform\atmos_analysis\data\
+```
+
+Open Windows Explorer and navigate to the `data/` directory.
+
+Then open the FITS file using the Windows FITS Viewer.
+
+The same FITS file is accessed from both environments:
+
+```text
+                         test.fits
+                             │
+                ┌────────────┴────────────┐
+                │                         │
+             WSL/Docker                Windows
+                │                         │
+                ▼                         ▼
+         HEASoft / FTOOLS          Windows FITS Viewer
+```
+
+The FITS file does not need to be copied from WSL to Windows.
+
+---
+
+# Command Line Environment
+
+If VS Code is not required, the Docker environment can also be started directly.
+
+```bash
+make shell
+```
+
+This starts an interactive shell inside the Docker container.
+
+The WSL `data/` directory is mounted to:
+
+```text
+/workspace/data/
+```
+
+For example:
 
 ```bash
 ls /workspace/data
+```
+
+and:
+
+```bash
+fversion
 ```
 
 can be used to verify the environment.
 
 ---
 
-# FITS Files
+# Make Commands
 
-## Viewing FITS Files on Windows
-
-FITS files are stored in WSL, but they can also be accessed from Windows.
-
-For example, the WSL filesystem can be accessed from Windows Explorer using:
-
-```text
-\\wsl$\
-```
-
-Navigate to the `data/` directory and open the FITS file with a FITS viewer installed on Windows.
-
-The same FITS file can therefore be used by both:
-
-```text
-Windows FITS Viewer
-        │
-        ▼
-      FITS file
-        ▲
-        │
-        │
-Docker / FTOOLS
-```
-
-No GUI application needs to be run inside the Docker container.
-
----
-
-# VS Code
-
-The repository can be opened directly from WSL using VS Code.
-
-From the repository directory:
-
-```bash
-code .
-```
-
-VS Code can be used to edit the analysis code while the actual analysis tools run inside Docker.
-
-If desired, the **Dev Containers** extension can also be used to open the development environment directly inside the Docker container.
+| Command | Description |
+|---|---|
+| `make pull` | Pull the pre-built Analysis Docker image |
+| `make build` | Build the Analysis Docker image locally |
+| `make test` | Test the Analysis environment |
+| `make shell` | Start an interactive Docker shell with `data/` mounted |
+| `make fv` | Start the GUI-enabled Docker environment for `fv` |
 
 ---
 
@@ -223,21 +359,13 @@ atmos-analysis:v1.0
 
 ---
 
-# Make Commands
-
-| Command      | Description                                                    |
-| ------------ | -------------------------------------------------------------- |
-| `make pull`  | Pull the pre-built Analysis Docker image                       |
-| `make build` | Build the Analysis Docker image locally                        |
-| `make test`  | Test the Analysis environment                                  |
-| `make shell` | Start an interactive Analysis environment with `data/` mounted |
-
----
-
 # Project Structure
 
 ```text
 atmos_analysis/
+
+├── .devcontainer/
+│   └── devcontainer.json
 ├── Dockerfile
 ├── Makefile
 ├── README.md
@@ -247,3 +375,48 @@ atmos_analysis/
 ```
 
 The `data/` directory contains local analysis data and is not included in the Git repository.
+
+---
+
+# Typical Workflow
+
+The recommended workflow is:
+
+```text
+1. Start WSL
+       │
+       ▼
+2. cd atmos_analysis
+       │
+       ▼
+3. code .
+       │
+       ▼
+4. Reopen in Container
+       │
+       ▼
+5. Analyze FITS data
+       │
+       ├── FTOOLS
+       ├── XSPEC
+       └── Python
+```
+
+For FITS visualization:
+
+```text
+WSLg available
+    │
+    └── make fv
+           │
+           └── fv → Windows GUI
+
+
+WSLg unavailable
+    │
+    └── Windows Explorer
+           │
+           └── Windows FITS Viewer
+```
+
+The analysis environment itself does not depend on `fv`. If the GUI is unavailable, HEASoft, FTOOLS, XSPEC, and Python can still be used inside the Docker container.
