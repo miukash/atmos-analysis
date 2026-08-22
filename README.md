@@ -263,7 +263,7 @@ Windows GUI
 ## Option 2: WSLg is not available
 
 If `fv` cannot display its GUI, use **Windows FV** to open the FITS file.
-
+https://heasarc.gsfc.nasa.gov/docs/software/ftools/fv/fv_download.html
 The FITS files remain in the WSL `data/` directory.
 
 Windows can access the WSL filesystem through:
