@@ -1,4 +1,4 @@
-IMAGE := atmos-analysis:v1.0
+IMAGE := ghcr.io/miukash/atmos-analysis:v1.0
 
 DATA_DIR := $(CURDIR)/data
 
